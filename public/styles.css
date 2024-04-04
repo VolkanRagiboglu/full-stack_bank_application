@@ -1,0 +1,41 @@
+.navbar-nav li.nav-item a.nav-link {
+  position: relative;
+  text-decoration: none;
+  font-size: 16px;
+  display: flex;
+  justify-content: start;
+}
+
+.navbar-nav li.nav-item a.nav-link::before {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  bottom: 0;
+  left: 0;
+  background-color: #0a0a0a; /* Change this to your desired underline color */
+  transform-origin: bottom right;
+  transform: scaleX(0);
+  transition: transform 0.3s ease-in-out;
+}
+
+.navbar-nav li.nav-item a.nav-link:hover::before,
+.navbar-nav li.nav-item a.nav-link.active::before {
+  transform-origin: bottom left;
+  transform: scaleX(1);
+}
+
+.Label {
+  padding-left: 10px;
+}
+
+.ResponsiveTable {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.CardBody {
+  padding: 1rem;
+}

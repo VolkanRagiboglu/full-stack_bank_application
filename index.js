@@ -6,11 +6,12 @@ var dal = require("./dal.js");
 const swaggerUi = require("swagger-ui-express");
 const swaggerDocument = require("./swagger.json");
 
-// Middleware
+// used to serve static files from public directory
+app.use(express.static("public"));
 app.use(cors());
 app.use(bodyParser.json());
 
-// Create user account
+// create user account
 app.post("/account/create", function (req, res) {
   const { name, email, password } = req.body;
   dal.find(email).then((users) => {
@@ -25,7 +26,7 @@ app.post("/account/create", function (req, res) {
   });
 });
 
-// Login user
+// login user
 app.post("/account/login", function (req, res) {
   const { email, password } = req.body;
   dal.find(email).then((user) => {
@@ -41,7 +42,7 @@ app.post("/account/login", function (req, res) {
   });
 });
 
-// Find user account
+// find user account
 app.get("/account/find/:email", function (req, res) {
   dal.find(req.params.email).then((user) => {
     if (user.length > 0) {
@@ -52,7 +53,15 @@ app.get("/account/find/:email", function (req, res) {
   });
 });
 
-// Update balance
+// find one user by email - alternative to find
+// app.get("/account/findOne/:email", function (req, res) {
+//   dal.findOne(req.params.email).then((user) => {
+//     console.log(user);
+//     res.send(user);
+//   });
+// });
+
+// update - deposit/withdraw amount
 app.post("/account/update/:email/:amount", function (req, res) {
   const { email, amount } = req.params;
   dal.update(email, Number(amount)).then((response) => {
@@ -64,7 +73,7 @@ app.post("/account/update/:email/:amount", function (req, res) {
   });
 });
 
-// Get all accounts
+// all accounts
 app.get("/account/all", function (req, res) {
   dal.all().then((docs) => {
     res.status(200).json(docs);

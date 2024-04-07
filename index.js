@@ -12,6 +12,7 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // create user account
+// create user account
 app.post("/account/create/:name/:email/:password", function (req, res) {
   // check if account exists
   dal.find(req.params.email).then((users) => {
@@ -54,14 +55,6 @@ app.get("/account/find/:email", function (req, res) {
     res.send(user);
   });
 });
-
-// find one user by email - alternative to find
-// app.get("/account/findOne/:email", function (req, res) {
-//   dal.findOne(req.params.email).then((user) => {
-//     console.log(user);
-//     res.send(user);
-//   });
-// });
 
 // deposit amount to user account
 app.post("/account/deposit/:email/:amount", function (req, res) {

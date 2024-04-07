@@ -45,31 +45,36 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "User already exists"
           }
         }
       }
     },
-    "/account/login": {
-      "post": {
+    "/account/login/{email}/{password}": {
+      "get": {
         "summary": "Log in to user account",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "email": {
-                    "type": "string"
-                  },
-                  "password": {
-                    "type": "string"
-                  }
-                },
-                "required": ["email", "password"]
-              }
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "description": "Email of the user",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "password",
+            "in": "path",
+            "description": "Password of the user",
+            "required": true,
+            "schema": {
+              "type": "string"
             }
           }
-        },
+        ],
         "responses": {
           "200": {
             "description": "User logged in successfully",
@@ -82,14 +87,14 @@
             }
           },
           "404": {
-            "description": "Login failed"
+            "description": "Login failed: user not found or wrong password"
           }
         }
       }
     },
-    "/account/update/{email}/{amount}": {
+    "/account/deposit/{email}/{amount}": {
       "post": {
-        "summary": "Update user balance",
+        "summary": "Deposit amount to user account",
         "parameters": [
           {
             "name": "email",
@@ -103,7 +108,7 @@
           {
             "name": "amount",
             "in": "path",
-            "description": "Amount to update balance",
+            "description": "Amount to update balance. Positive value for deposit, negative value for withdrawal.",
             "required": true,
             "schema": {
               "type": "number"
@@ -121,8 +126,51 @@
               }
             }
           },
+          "400": {
+            "description": "Bad request. Insufficient balance for withdrawal."
+          },
           "404": {
             "description": "User account not found"
+          }
+        }
+      }
+    },
+    "/account/withdraw/{email}/{amount}": {
+      "post": {
+        "summary": "Withdraw amount from user account",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "description": "Email of the user",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "amount",
+            "in": "path",
+            "description": "Amount to withdraw from the user's account",
+            "required": true,
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Withdrawal successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request. User account not found or insufficient balance for withdrawal."
           }
         }
       }
@@ -174,6 +222,30 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/account/delete/{email}": {
+      "delete": {
+        "summary": "Delete user account",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "description": "Email of the user to delete",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User account deleted successfully"
+          },
+          "404": {
+            "description": "User account not found"
           }
         }
       }

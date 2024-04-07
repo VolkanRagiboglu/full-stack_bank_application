@@ -12,32 +12,37 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // create user account
-app.post("/account/create", function (req, res) {
-  const { name, email, password } = req.body;
-  dal.find(email).then((users) => {
+app.post("/account/create/:name/:email/:password", function (req, res) {
+  // check if account exists
+  dal.find(req.params.email).then((users) => {
+    // if user exists, return error message
     if (users.length > 0) {
-      res.status(400).send("User already exists");
+      console.log("User already in exists");
+      res.send("User already in exists");
     } else {
+      // else create user
       dal
-        .create(name, email, password)
-        .then((user) => res.status(200).json(user))
-        .catch((err) => res.status(500).send(err));
+        .create(req.params.name, req.params.email, req.params.password)
+        .then((user) => {
+          console.log(user);
+          res.send(user);
+        });
     }
   });
 });
 
 // login user
-app.post("/account/login", function (req, res) {
-  const { email, password } = req.body;
-  dal.find(email).then((user) => {
+app.get("/account/login/:email/:password", function (req, res) {
+  dal.find(req.params.email).then((user) => {
+    // if user exists, check password
     if (user.length > 0) {
-      if (user[0].password === password) {
-        res.status(200).json(user[0]);
+      if (user[0].password === req.params.password) {
+        res.send(user[0]);
       } else {
-        res.status(401).send("Login failed: wrong password");
+        res.send("Login failed: wrong password");
       }
     } else {
-      res.status(404).send("Login failed: user not found");
+      res.send("Login failed: user not found");
     }
   });
 });
@@ -45,11 +50,8 @@ app.post("/account/login", function (req, res) {
 // find user account
 app.get("/account/find/:email", function (req, res) {
   dal.find(req.params.email).then((user) => {
-    if (user.length > 0) {
-      res.status(200).json(user);
-    } else {
-      res.status(404).send("User not found");
-    }
+    console.log(user);
+    res.send(user);
   });
 });
 
@@ -61,22 +63,67 @@ app.get("/account/find/:email", function (req, res) {
 //   });
 // });
 
-// update - deposit/withdraw amount
-app.post("/account/update/:email/:amount", function (req, res) {
-  const { email, amount } = req.params;
-  dal.update(email, Number(amount)).then((response) => {
-    if (response.value) {
-      res.status(200).json(response.value);
-    } else {
-      res.status(404).send("User not found");
-    }
+// deposit amount to user account
+app.post("/account/deposit/:email/:amount", function (req, res) {
+  var amount = Number(req.params.amount);
+
+  dal.deposit(req.params.email, amount).then((response) => {
+    console.log(response);
+    res.send(response);
   });
+});
+
+// withdraw amount from user account
+app.post("/account/withdraw/:email/:amount", function (req, res) {
+  var amount = Number(req.params.amount);
+
+  dal.withdraw(req.params.email, amount).then(
+    (user) => {
+      console.log(user);
+      res.send(user);
+    },
+    (error) => {
+      console.error(error);
+      res.status(400).send(error); // Sending error response with 400 status
+    }
+  );
+});
+
+// delete user account
+app.delete("/account/delete/:email", function (req, res) {
+  const email = req.params.email;
+
+  // Check if the user account exists
+  dal
+    .find(email)
+    .then((user) => {
+      if (user.length > 0) {
+        // User account found, proceed with deletion
+        dal
+          .del(email)
+          .then(() => {
+            res.status(200).send("User account deleted successfully");
+          })
+          .catch((error) => {
+            console.error("Error deleting user account:", error);
+            res.status(500).send("Internal Server Error");
+          });
+      } else {
+        // User account not found
+        res.status(404).send("User account not found");
+      }
+    })
+    .catch((error) => {
+      console.error("Error finding user account:", error);
+      res.status(500).send("Internal Server Error");
+    });
 });
 
 // all accounts
 app.get("/account/all", function (req, res) {
   dal.all().then((docs) => {
-    res.status(200).json(docs);
+    console.log(docs);
+    res.send(docs);
   });
 });
 

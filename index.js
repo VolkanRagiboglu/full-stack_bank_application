@@ -35,10 +35,17 @@ app.post("/account/create/:name/:email/:password", function (req, res) {
 // login user
 app.get("/account/login/:email/:password", function (req, res) {
   dal.find(req.params.email).then((user) => {
-    // if user exists, check password
     if (user.length > 0) {
       if (user[0].password === req.params.password) {
-        res.send(user[0]);
+        dal
+          .setLoggedIn(user[0].email, true)
+          .then(() => {
+            res.send(user[0]);
+          })
+          .catch((error) => {
+            console.error("Error setting loggedIn flag:", error);
+            res.status(500).send("Internal Server Error");
+          });
       } else {
         res.send("Login failed: wrong password");
       }
@@ -46,6 +53,20 @@ app.get("/account/login/:email/:password", function (req, res) {
       res.send("Login failed: user not found");
     }
   });
+});
+
+// log off user
+app.get("/account/logoff/:email", function (req, res) {
+  const email = req.params.email;
+  dal
+    .logoff(email)
+    .then(() => {
+      res.send("User logged off successfully");
+    })
+    .catch((error) => {
+      console.error("Error setting loggedIn flag:", error);
+      res.status(500).send("Internal Server Error");
+    });
 });
 
 // find user account

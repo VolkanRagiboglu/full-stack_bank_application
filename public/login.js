@@ -1,6 +1,39 @@
-function Login() {
-  const [show, setShow] = React.useState(true);
+function Login({ email }) {
+  const [isLoggedIn, setIsLoggedIn] = React.useState(false);
   const [status, setStatus] = React.useState("");
+
+  // Check if user is already logged in
+  React.useEffect(() => {
+    const loggedIn = localStorage.getItem("isLoggedIn");
+    if (loggedIn === "true") {
+      setIsLoggedIn(true);
+    }
+  }, []);
+
+  const handleLogoff = async () => {
+    try {
+      // Get the email from local storage
+      const loggedInEmail = localStorage.getItem("email");
+      if (!loggedInEmail) {
+        setStatus("No user logged in");
+        return;
+      }
+
+      // Call the logoff endpoint with the correct email value
+      const response = await fetch(`/account/logoff/${loggedInEmail}`);
+      if (response.ok) {
+        setStatus("Logged off successfully");
+        setIsLoggedIn(false);
+        localStorage.removeItem("isLoggedIn");
+      } else {
+        const data = await response.json();
+        setStatus(data.message || "Error logging off");
+      }
+    } catch (error) {
+      console.error("Error logging off:", error);
+      setStatus("Error logging off");
+    }
+  };
 
   return (
     <Card
@@ -8,32 +41,28 @@ function Login() {
       header="Login"
       status={status}
       body={
-        show ? (
-          <LoginForm setShow={setShow} setStatus={setStatus} />
+        isLoggedIn ? (
+          <LoginMsg handleLogoff={handleLogoff} />
         ) : (
-          <LoginMsg setShow={setShow} setStatus={setStatus} />
+          <LoginForm setIsLoggedIn={setIsLoggedIn} setStatus={setStatus} />
         )
       }
     />
   );
 }
 
-function LoginMsg(props) {
+function LoginMsg({ handleLogoff }) {
   return (
     <>
       <h5>Success</h5>
-      <button
-        type="submit"
-        className="btn btn-light"
-        onClick={() => props.setShow(true)}
-      >
-        Authenticate again
+      <button type="button" className="btn btn-light" onClick={handleLogoff}>
+        Logoff
       </button>
     </>
   );
 }
 
-function LoginForm(props) {
+function LoginForm({ setIsLoggedIn, setStatus }) {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
 
@@ -43,11 +72,13 @@ function LoginForm(props) {
       .then((text) => {
         try {
           const data = JSON.parse(text);
-          props.setStatus("");
-          props.setShow(false);
+          setStatus("");
+          setIsLoggedIn(true);
+          localStorage.setItem("isLoggedIn", "true");
+          localStorage.setItem("email", email); // Store email in local storage
           console.log("JSON:", data);
         } catch (err) {
-          props.setStatus(text);
+          setStatus(text);
           console.log("err:", text);
         }
       });

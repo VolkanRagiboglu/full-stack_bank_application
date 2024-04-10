@@ -98,4 +98,63 @@ function all() {
   });
 }
 
-module.exports = { create, find, deposit, withdraw, all, del };
+// set loggedIn flag for user account
+function setLoggedIn(email, loggedIn) {
+  return new Promise((resolve, reject) => {
+    const collection = db.collection("users");
+    collection.updateOne(
+      { email: email },
+      { $set: { loggedIn: loggedIn } },
+      function (err, result) {
+        err ? reject(err) : resolve(result);
+      }
+    );
+  });
+}
+
+// set logged off flag for user account
+function setLoggedOff(email, loggedIn) {
+  return new Promise((resolve, reject) => {
+    const collection = db.collection("users");
+    collection.updateOne(
+      { email: email },
+      { $set: { loggedIn: loggedIn } },
+      function (err, result) {
+        err ? reject(err) : resolve(result);
+      }
+    );
+  });
+}
+
+// log off user
+function logoff(email) {
+  console.log("Attempting to log off user with email:", email);
+  return new Promise((resolve, reject) => {
+    const collection = db.collection("users");
+    collection.updateOne(
+      { email: email },
+      { $set: { loggedIn: false } },
+      function (err, result) {
+        if (err) {
+          console.error("Error updating loggedIn field:", err);
+          reject(err);
+        } else {
+          console.log("Update result:", result);
+          resolve(result);
+        }
+      }
+    );
+  });
+}
+
+module.exports = {
+  create,
+  find,
+  deposit,
+  withdraw,
+  all,
+  del,
+  setLoggedIn,
+  setLoggedOff,
+  logoff,
+};

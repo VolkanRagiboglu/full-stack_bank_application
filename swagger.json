@@ -257,6 +257,30 @@
           }
         }
       }
+    },
+    "/account/logoff/{email}": {
+      "get": {
+        "summary": "Log off user",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "description": "Email of the user to log off",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User logged off successfully"
+          },
+          "404": {
+            "description": "User account not found"
+          }
+        }
+      }
     }
   },
   "components": {

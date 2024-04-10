@@ -12,7 +12,6 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // create user account
-// create user account
 app.post("/account/create/:name/:email/:password", function (req, res) {
   // check if account exists
   dal.find(req.params.email).then((users) => {

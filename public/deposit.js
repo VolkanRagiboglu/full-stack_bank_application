@@ -1,13 +1,14 @@
 function Deposit() {
-  const [show, setShow] = React.useState(true);
-  const [status, setStatus] = React.useState("");
+  const [isLoggedIn, setIsLoggedIn] = React.useState(false);
   const [userEmail, setUserEmail] = React.useState("");
 
-  // Check if user is logged in
+  // Check if user is already logged in
   React.useEffect(() => {
-    const userEmail = localStorage.getItem("userEmail");
-    if (userEmail) {
-      setUserEmail(userEmail);
+    const loggedIn = localStorage.getItem("isLoggedIn");
+    const email = localStorage.getItem("email");
+    if (loggedIn === "true" && email) {
+      setIsLoggedIn(true);
+      setUserEmail(email);
     }
   }, []);
 
@@ -15,91 +16,55 @@ function Deposit() {
     <Card
       bgcolor="warning"
       header="Deposit"
-      status={status}
       body={
-        show ? (
-          <DepositForm
-            setShow={setShow}
-            setStatus={setStatus}
-            userEmail={userEmail}
-          />
+        isLoggedIn ? (
+          <DepositForm userEmail={userEmail} />
         ) : (
-          <DepositMsg setShow={setShow} setStatus={setStatus} />
+          <p>Please log in to access this page.</p>
         )
       }
     />
   );
 }
 
-function DepositMsg(props) {
-  return (
-    <>
-      <h5>Success</h5>
-      <button
-        type="submit"
-        className="btn btn-light"
-        onClick={() => {
-          props.setShow(true);
-          props.setStatus("");
-        }}
-      >
-        Deposit again
-      </button>
-    </>
-  );
-}
-
-function DepositForm(props) {
+function DepositForm({ userEmail }) {
   const [amount, setAmount] = React.useState("");
+  const [status, setStatus] = React.useState("");
 
-  function handle() {
-    // Fetch deposit logic using props.userEmail
-    fetch(`/account/update/${props.userEmail}/${amount}`)
-      .then((response) => response.text())
-      .then((text) => {
-        try {
-          const data = JSON.parse(text);
-          props.setStatus(JSON.stringify(data.value));
-          props.setShow(false);
-          console.log("JSON:", data);
-        } catch (err) {
-          props.setStatus("Deposit failed");
-          console.log("err:", text);
-        }
+  const handleDeposit = () => {
+    // Send a POST request to the deposit endpoint
+    fetch(`/account/deposit/${userEmail}/${amount}`, {
+      method: "POST",
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        console.log(data);
+        setStatus("Deposit successful");
+      })
+      .catch((error) => {
+        console.error("Error depositing:", error);
+        setStatus("Error depositing");
       });
-  }
+  };
 
   return (
-    <>
-      {props.userEmail ? (
-        <>
-          <h6>You are logged in as: {props.userEmail}</h6>
-          <button
-            type="submit"
-            className="btn btn-light"
-            onClick={() => props.setShow(false)}
-          >
-            Continue
-          </button>
-        </>
-      ) : (
-        <>
-          <label htmlFor="amount">Amount:</label>
-          <input
-            id="amount"
-            type="number"
-            className="form-control"
-            placeholder="Enter amount"
-            value={amount}
-            onChange={(e) => setAmount(e.currentTarget.value)}
-          />
-          <br />
-
-          <button type="submit" className="btn btn-light" onClick={handle}>
-            Deposit
-          </button>
-        </>
-      )}
-    </>
+    <div>
+      <h3>Deposit Form</h3>
+      <p>Logged in user: {userEmail}</p>
+      <label htmlFor="amount">Amount:</label>
+      <input
+        id="amount"
+        type="number"
+        className="form-control"
+        placeholder="Enter amount"
+        value={amount}
+        onChange={(e) => setAmount(Number(e.currentTarget.value))}
+      />
+      <br />
+      <button type="submit" className="btn btn-light" onClick={handleDeposit}>
+        Deposit
+      </button>
+      <p>{status}</p>
+    </div>
   );
 }

@@ -1,77 +1,44 @@
 function Balance() {
-  const [show, setShow] = React.useState(true);
+  return <Card bgcolor="info" header="Balance" body={<BalanceForm />} />;
+}
+
+function BalanceForm() {
+  const [email, setEmail] = React.useState("");
+  const [balance, setBalance] = React.useState(null);
   const [status, setStatus] = React.useState("");
 
-  return (
-    <Card
-      bgcolor="info"
-      header="Balance"
-      status={status}
-      body={
-        show ? (
-          <BalanceForm setShow={setShow} setStatus={setStatus} />
-        ) : (
-          <BalanceMsg setShow={setShow} setStatus={setStatus} />
-        )
-      }
-    />
-  );
-}
-
-function BalanceMsg(props) {
-  return (
-    <>
-      <h5>Success</h5>
-      <button
-        type="submit"
-        className="btn btn-light"
-        onClick={() => {
-          props.setShow(true);
-          props.setStatus("");
-        }}
-      >
-        Check balance again
-      </button>
-    </>
-  );
-}
-
-function BalanceForm(props) {
-  const [email, setEmail] = React.useState("");
-  const [balance, setBalance] = React.useState("");
-
-  function handle() {
-    fetch(`/account/findOne/${email}`)
-      .then((response) => response.text())
-      .then((text) => {
-        try {
-          const data = JSON.parse(text);
-          props.setStatus(text);
-          props.setShow(false);
+  function handleCheckBalance() {
+    const userEmail = localStorage.getItem("email");
+    fetch(`/account/find/${userEmail}`)
+      .then((response) => response.json())
+      .then((data) => {
+        const user = data[0];
+        if (user) {
           setBalance(user.balance);
-          console.log("JSON:", data);
-        } catch (err) {
-          props.setStatus(text);
-          console.log("err:", text);
+          setStatus("Balance checked successfully");
+        } else {
+          setStatus("User not found");
         }
+      })
+      .catch((error) => {
+        console.error("Error fetching user balance:", error);
+        setStatus("Error fetching balance");
       });
   }
 
   return (
-    <>
-      Email
-      <br />
-      <input
-        type="input"
-        className="form-control"
-        placeholder="Enter email"
-        value={email}
-        onChange={(e) => setEmail(e.currentTarget.value)}
-      />
-      <br />
-      <button type="submit" className="btn btn-light" onClick={handle}>
+    <div>
+      <h3>Check Balance</h3>
+      <button
+        type="submit"
+        className="btn btn-light"
+        onClick={handleCheckBalance}
+      >
         Check Balance
       </button>
-    </>
+      <br />
+      {balance !== null && <p>Balance: ${balance}</p>}
+      <p>{status}</p>
+    </div>
   );
 }

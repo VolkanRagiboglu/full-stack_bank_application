@@ -28,8 +28,22 @@ function Deposit() {
 }
 
 function DepositForm({ userEmail }) {
-  const [amount, setAmount] = React.useState("");
+  const [userDetails, setUserDetails] = React.useState(null);
+  const [amount, setAmount] = React.useState(null);
   const [status, setStatus] = React.useState("");
+
+  // Fetch user information when the component mounts
+  React.useEffect(() => {
+    // Fetch user details
+    fetch(`/account/find/${userEmail}`)
+      .then((response) => response.json())
+      .then((data) => {
+        setUserDetails(data[0]); // Assuming the response is an array with a single user object
+      })
+      .catch((error) => {
+        console.error("Error fetching user details:", error);
+      });
+  }, [userEmail]); // Trigger effect when userEmail changes
 
   const handleDeposit = () => {
     // Send a POST request to the deposit endpoint
@@ -49,16 +63,21 @@ function DepositForm({ userEmail }) {
 
   return (
     <div>
-      <h3>Deposit Form</h3>
-      <p>Logged in user: {userEmail}</p>
+      {userDetails && (
+        <p>Logged in user: {userDetails.name}</p> // Display user's name instead of email
+      )}
       <label htmlFor="amount">Amount:</label>
       <input
         id="amount"
         type="number"
         className="form-control"
         placeholder="Enter amount"
-        value={amount}
-        onChange={(e) => setAmount(Number(e.currentTarget.value))}
+        value={amount !== null ? amount : ""}
+        onChange={(e) =>
+          setAmount(
+            e.currentTarget.value === "" ? null : Number(e.currentTarget.value)
+          )
+        }
       />
       <br />
       <button type="submit" className="btn btn-light" onClick={handleDeposit}>

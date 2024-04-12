@@ -5,19 +5,27 @@ function AllData() {
     fetch("/account/all")
       .then((response) => response.json())
       .then((data) => {
-        console.log(data);
         setData(data);
       });
   }, []);
 
   return (
-    <>
-      <h5>All Data in Store:</h5>
-      <ul>
-        {data.map((item, index) => (
-          <li key={index}>{JSON.stringify(item)}</li>
-        ))}
-      </ul>
-    </>
+    <Card
+      txtcolor="black"
+      header="All Data in Store"
+      body={
+        <div>
+          {data.map((item, index) => (
+            <div key={index} className="card mb-3">
+              <div className="card-body">
+                <h5 className="card-title">{item.name}</h5>
+                <p className="card-text">Email: {item.email}</p>
+                <p className="card-text">Balance: {item.balance}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      }
+    />
   );
 }

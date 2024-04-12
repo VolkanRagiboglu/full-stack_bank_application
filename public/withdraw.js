@@ -1,86 +1,97 @@
 function Withdraw() {
-  const [show, setShow] = React.useState(true);
-  const [status, setStatus] = React.useState("");
+  const [isLoggedIn, setIsLoggedIn] = React.useState(false);
+  const [userEmail, setUserEmail] = React.useState("");
+
+  // Check if user is already logged in
+  React.useEffect(() => {
+    const loggedIn = localStorage.getItem("isLoggedIn");
+    const email = localStorage.getItem("email");
+    if (loggedIn === "true" && email) {
+      setIsLoggedIn(true);
+      setUserEmail(email);
+    }
+  }, []);
 
   return (
     <Card
       bgcolor="success"
       header="Withdraw"
-      status={status}
       body={
-        show ? (
-          <WithdrawForm setShow={setShow} setStatus={setStatus} />
+        isLoggedIn ? (
+          <WithdrawForm userEmail={userEmail} />
         ) : (
-          <WithdrawMsg setShow={setShow} setStatus={setStatus} />
+          <p>Please log in to access this page.</p>
         )
       }
     />
   );
 }
 
-function WithdrawMsg(props) {
-  return (
-    <>
-      <h5>Success</h5>
-      <button
-        type="submit"
-        className="btn btn-light"
-        onClick={() => {
-          props.setShow(true);
-          props.setStatus("");
-        }}
-      >
-        Withdraw again
-      </button>
-    </>
-  );
-}
+function WithdrawForm({ userEmail }) {
+  const [userDetails, setUserDetails] = React.useState(null);
+  const [amount, setAmount] = React.useState(null);
+  const [status, setStatus] = React.useState("");
 
-function WithdrawForm(props) {
-  const [email, setEmail] = React.useState("");
-  const [amount, setAmount] = React.useState("");
+  // Fetch user information when the component mounts
+  React.useEffect(() => {
+    // Fetch user details using the email stored in local storage
+    fetch(`/account/find/${userEmail}`)
+      .then((response) => response.json())
+      .then((data) => {
+        setUserDetails(data[0]); // Assuming the response is an array with a single user object
+      })
+      .catch((error) => {
+        console.error("Error fetching user details:", error);
+      });
+  }, [userEmail]);
 
-  function handle() {
-    fetch(`/account/update/${email}/-${amount}`)
-      .then((response) => response.text())
-      .then((text) => {
-        try {
-          const data = JSON.parse(text);
-          props.setStatus(JSON.stringify(data.value));
-          props.setShow(false);
-          console.log("JSON:", data);
-        } catch (err) {
-          props.setStatus("Deposit failed");
-          console.log("err:", text);
-        }
+  function handleWithdraw() {
+    // Send a POST request to the withdraw endpoint
+    fetch(`/account/withdraw/${userDetails.email}/${amount}`, {
+      method: "POST",
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        console.log(data);
+        setStatus("Withdrawal successful");
+      })
+      .catch((error) => {
+        console.error("Error withdrawing:", error);
+        setStatus("Error withdrawing");
       });
   }
 
   return (
     <>
-      Email
-      <br />
-      <input
-        type="input"
-        className="form-control"
-        placeholder="Enter email"
-        value={email}
-        onChange={(e) => setEmail(e.currentTarget.value)}
-      />
-      <br />
-      Amount
-      <br />
-      <input
-        type="number"
-        className="form-control"
-        placeholder="Enter amount"
-        value={amount}
-        onChange={(e) => setAmount(e.currentTarget.value)}
-      />
-      <br />
-      <button type="submit" className="btn btn-light" onClick={handle}>
-        Withdraw
-      </button>
+      {userDetails && (
+        <>
+          <p>Logged in user: {userDetails.name}</p>
+          <label htmlFor="amount">Amount:</label>
+          <input
+            id="amount"
+            type="number"
+            className="form-control"
+            placeholder="Enter amount"
+            value={amount !== null ? amount : ""}
+            onChange={(e) =>
+              setAmount(
+                e.currentTarget.value === ""
+                  ? null
+                  : Number(e.currentTarget.value)
+              )
+            }
+          />
+          <br />
+          <button
+            type="submit"
+            className="btn btn-light"
+            onClick={handleWithdraw}
+          >
+            Withdraw
+          </button>
+          <p>{status}</p>
+        </>
+      )}
     </>
   );
 }

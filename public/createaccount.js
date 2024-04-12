@@ -38,15 +38,22 @@ function CreateForm(props) {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
 
-  function handle() {
-    console.log(name, email, password);
+  async function handle() {
     const url = `/account/create/${name}/${email}/${password}`;
-    (async () => {
-      var res = await fetch(url);
-      var data = await res.json();
-      console.log(data);
-    })();
-    props.setShow(false);
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+      });
+      if (response.ok) {
+        const data = await response.json();
+        console.log(data);
+        props.setShow(false);
+      } else {
+        throw new Error("Failed to create account");
+      }
+    } catch (error) {
+      console.error("Error creating account:", error.message);
+    }
   }
 
   return (

@@ -1,29 +1,57 @@
 function Deposit() {
   const [isLoggedIn, setIsLoggedIn] = React.useState(false);
   const [userEmail, setUserEmail] = React.useState("");
+  const [userName, setUserName] = React.useState("");
 
   // Check if user is already logged in
   React.useEffect(() => {
     const loggedIn = localStorage.getItem("isLoggedIn");
-    const email = localStorage.getItem("email");
-    if (loggedIn === "true" && email) {
+    if (loggedIn === "true") {
       setIsLoggedIn(true);
+      const email = localStorage.getItem("email");
       setUserEmail(email);
+      fetch(`/account/find/${email}`)
+        .then((response) => response.json())
+        .then((data) => {
+          const user = data[0];
+          if (user) {
+            setUserName(user.name);
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching user information:", error);
+        });
     }
   }, []);
 
   return (
-    <Card
-      bgcolor="warning"
-      header="Deposit"
-      body={
-        isLoggedIn ? (
-          <DepositForm userEmail={userEmail} />
-        ) : (
-          <p>Please log in to access this page.</p>
-        )
-      }
-    />
+    <>
+      {/* Logged-in user card */}
+      {isLoggedIn && (
+        <div style={{ position: "absolute", top: "75px", right: "10px" }}>
+          <Card
+            bgcolor="info"
+            header="Logged In User"
+            body={`${userName}`}
+            style={{
+              width: "200px", // Adjust width as needed
+              margin: "10px", // Adjust margin as needed
+            }}
+          />
+        </div>
+      )}
+      <Card
+        bgcolor="success"
+        header="Deposit"
+        body={
+          isLoggedIn ? (
+            <DepositForm userEmail={userEmail} />
+          ) : (
+            <p>Please log in to access this page.</p>
+          )
+        }
+      />
+    </>
   );
 }
 
@@ -63,9 +91,7 @@ function DepositForm({ userEmail }) {
 
   return (
     <div>
-      {userDetails && (
-        <p>Logged in user: {userDetails.name}</p> // Display user's name instead of email
-      )}
+      {/* {userDetails && <p>Logged in user: {userDetails.name}</p>} */}
       <label htmlFor="amount">Amount:</label>
       <input
         id="amount"

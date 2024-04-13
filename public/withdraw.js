@@ -1,6 +1,7 @@
 function Withdraw() {
   const [isLoggedIn, setIsLoggedIn] = React.useState(false);
   const [userEmail, setUserEmail] = React.useState("");
+  const [userName, setUserName] = React.useState("");
 
   // Check if user is already logged in
   React.useEffect(() => {
@@ -9,21 +10,48 @@ function Withdraw() {
     if (loggedIn === "true" && email) {
       setIsLoggedIn(true);
       setUserEmail(email);
+      // Fetch user details to get the user's name
+      fetch(`/account/find/${email}`)
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.length > 0) {
+            setUserName(data[0].name);
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching user details:", error);
+        });
     }
   }, []);
 
   return (
-    <Card
-      bgcolor="success"
-      header="Withdraw"
-      body={
-        isLoggedIn ? (
-          <WithdrawForm userEmail={userEmail} />
-        ) : (
-          <p>Please log in to access this page.</p>
-        )
-      }
-    />
+    <>
+      {/* Logged-in user card */}
+      {isLoggedIn && (
+        <div style={{ position: "absolute", top: "75px", right: "10px" }}>
+          <Card
+            bgcolor="info"
+            header="Logged In User"
+            body={`${userName}`}
+            style={{
+              width: "200px", // Adjust width as needed
+              margin: "10px", // Adjust margin as needed
+            }}
+          />
+        </div>
+      )}
+      <Card
+        bgcolor="danger"
+        header="Withdraw"
+        body={
+          isLoggedIn ? (
+            <WithdrawForm userEmail={userEmail} />
+          ) : (
+            <p>Please log in to access this page.</p>
+          )
+        }
+      />
+    </>
   );
 }
 
@@ -46,6 +74,12 @@ function WithdrawForm({ userEmail }) {
   }, [userEmail]);
 
   function handleWithdraw() {
+    // Check if userDetails is available
+    if (!userDetails) {
+      console.error("User details not available");
+      return;
+    }
+
     // Send a POST request to the withdraw endpoint
     fetch(`/account/withdraw/${userDetails.email}/${amount}`, {
       method: "POST",
@@ -65,7 +99,7 @@ function WithdrawForm({ userEmail }) {
     <>
       {userDetails && (
         <>
-          <p>Logged in user: {userDetails.name}</p>
+          {/* <p>Logged in user: {userDetails.name}</p> */}
           <label htmlFor="amount">Amount:</label>
           <input
             id="amount"

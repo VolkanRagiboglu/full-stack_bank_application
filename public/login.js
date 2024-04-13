@@ -1,12 +1,25 @@
 function Login({ email }) {
   const [isLoggedIn, setIsLoggedIn] = React.useState(false);
   const [status, setStatus] = React.useState("");
+  const [userName, setUserName] = React.useState("");
 
   // Check if user is already logged in
   React.useEffect(() => {
     const loggedIn = localStorage.getItem("isLoggedIn");
     if (loggedIn === "true") {
       setIsLoggedIn(true);
+      const userEmail = localStorage.getItem("email");
+      fetch(`/account/find/${userEmail}`)
+        .then((response) => response.json())
+        .then((data) => {
+          const user = data[0];
+          if (user) {
+            setUserName(user.name);
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching user information:", error);
+        });
     }
   }, []);
 
@@ -24,6 +37,7 @@ function Login({ email }) {
       if (response.ok) {
         setStatus("Logged off successfully");
         setIsLoggedIn(false);
+        setUserName(""); // Clear user name
         localStorage.removeItem("isLoggedIn");
       } else {
         const data = await response.json();
@@ -36,18 +50,34 @@ function Login({ email }) {
   };
 
   return (
-    <Card
-      bgcolor="secondary"
-      header="Login"
-      status={status}
-      body={
-        isLoggedIn ? (
-          <LoginMsg handleLogoff={handleLogoff} />
-        ) : (
-          <LoginForm setIsLoggedIn={setIsLoggedIn} setStatus={setStatus} />
-        )
-      }
-    />
+    <>
+      {/* Render logged-in user's name if user is logged in */}
+      {isLoggedIn && (
+        <div style={{ position: "absolute", top: "75px", right: "10px" }}>
+          <Card
+            bgcolor="info"
+            header="Logged In User"
+            body={`${userName}`}
+            style={{
+              width: "200px", // Adjust width as needed
+              margin: "10px", // Adjust margin as needed
+            }}
+          />
+        </div>
+      )}
+      <Card
+        bgcolor="secondary"
+        header="Login"
+        status={status}
+        body={
+          isLoggedIn ? (
+            <LoginMsg handleLogoff={handleLogoff} />
+          ) : (
+            <LoginForm setIsLoggedIn={setIsLoggedIn} setStatus={setStatus} />
+          )
+        }
+      />
+    </>
   );
 }
 

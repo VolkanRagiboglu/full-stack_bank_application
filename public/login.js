@@ -1,44 +1,61 @@
-function Login({ email }) {
-  const [isLoggedIn, setIsLoggedIn] = React.useState(false);
+function Login() {
+  const [isLoggedIn, setIsLoggedIn] = React.useState(() => {
+    // Initialize isLoggedIn from local storage
+    return localStorage.getItem("isLoggedIn") === "true";
+  });
   const [status, setStatus] = React.useState("");
-  const [userName, setUserName] = React.useState("");
+  const [userName, setUserName] = React.useState(
+    localStorage.getItem("userName") || ""
+  );
 
-  // Check if user is already logged in
-  React.useEffect(() => {
-    const loggedIn = localStorage.getItem("isLoggedIn");
-    if (loggedIn === "true") {
-      setIsLoggedIn(true);
-      const userEmail = localStorage.getItem("email");
-      fetch(`/account/find/${userEmail}`)
-        .then((response) => response.json())
+  // Function to fetch user's logged-in status from backend
+  const fetchLoggedInStatus = () => {
+    const loggedInEmail = localStorage.getItem("email");
+    if (loggedInEmail) {
+      fetch(`/account/find/${encodeURIComponent(loggedInEmail)}`)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(
+              "Failed to fetch logged-in status: " + response.status
+            );
+          }
+          return response.json();
+        })
         .then((data) => {
-          const user = data[0];
-          if (user) {
-            setUserName(user.name);
+          const isLoggedIn = data.some((user) => user.loggedIn);
+          setIsLoggedIn(isLoggedIn);
+          if (isLoggedIn) {
+            const loggedInUser = data.find((user) => user.loggedIn);
+            setUserName(loggedInUser.name);
           }
         })
         .catch((error) => {
-          console.error("Error fetching user information:", error);
+          console.error("Error fetching logged-in status:", error);
+          setIsLoggedIn(false); // Set isLoggedIn to false on error
         });
+    } else {
+      setIsLoggedIn(false); // Set isLoggedIn to false when there is no logged-in user
     }
+  };
+
+  // Fetch logged-in status when component mounts
+  React.useEffect(() => {
+    fetchLoggedInStatus();
   }, []);
 
   const handleLogoff = async () => {
     try {
-      // Get the email from local storage
-      const loggedInEmail = localStorage.getItem("email");
-      if (!loggedInEmail) {
-        setStatus("No user logged in");
-        return;
-      }
-
-      // Call the logoff endpoint with the correct email value
-      const response = await fetch(`/account/logoff/${loggedInEmail}`);
+      const userEmail = localStorage.getItem("email");
+      const response = await fetch(`/account/logoff/${userEmail}`);
       if (response.ok) {
-        setStatus("Logged off successfully");
+        // Update the state only if the logoff request is successful
         setIsLoggedIn(false);
-        setUserName(""); // Clear user name
+        setUserName("");
+        setStatus("Logged off successfully");
+        // Clear localStorage
         localStorage.removeItem("isLoggedIn");
+        localStorage.removeItem("email");
+        localStorage.removeItem("userName");
       } else {
         const data = await response.json();
         setStatus(data.message || "Error logging off");
@@ -49,22 +66,62 @@ function Login({ email }) {
     }
   };
 
+  const handleLogin = (email, password) => {
+    fetch(`/account/find/${encodeURIComponent(email)}`)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to fetch user data");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        if (data.length === 0) {
+          setStatus("Email or password is incorrect");
+        } else {
+          // Check if password matches
+          fetch(`/account/login/${email}/${password}`)
+            .then((response) => response.json())
+            .then((loginData) => {
+              if (loginData.error) {
+                setStatus("Email or password is incorrect");
+              } else {
+                // Login successful
+                setStatus("");
+                setUserName(loginData.user.name);
+                setIsLoggedIn(true); // Update isLoggedIn directly to true
+                // Store login status and user details in local storage
+                localStorage.setItem("isLoggedIn", "true");
+                localStorage.setItem("email", email);
+                localStorage.setItem("userName", loginData.user.name);
+              }
+            })
+            .catch((loginError) => {
+              console.error("Error logging in:", loginError);
+              setStatus("Email or password is incorrect");
+            });
+        }
+      })
+      .catch((error) => {
+        console.error("Error checking user:", error);
+        setStatus("Email or password is incorrect");
+      });
+  };
+
   return (
     <>
-      {/* Render logged-in user's name if user is logged in */}
-      {isLoggedIn && (
-        <div style={{ position: "absolute", top: "75px", right: "10px" }}>
+      <div style={{ position: "absolute", top: "75px", right: "10px" }}>
+        {isLoggedIn && (
           <Card
             bgcolor="info"
             header="Logged In User"
             body={`${userName}`}
             style={{
-              width: "200px", // Adjust width as needed
-              margin: "10px", // Adjust margin as needed
+              width: "200px",
+              margin: "10px",
             }}
           />
-        </div>
-      )}
+        )}
+      </div>
       <Card
         bgcolor="secondary"
         header="Login"
@@ -73,7 +130,7 @@ function Login({ email }) {
           isLoggedIn ? (
             <LoginMsg handleLogoff={handleLogoff} />
           ) : (
-            <LoginForm setIsLoggedIn={setIsLoggedIn} setStatus={setStatus} />
+            <LoginForm handleLogin={handleLogin} />
           )
         }
       />
@@ -92,53 +149,96 @@ function LoginMsg({ handleLogoff }) {
   );
 }
 
-function LoginForm({ setIsLoggedIn, setStatus }) {
+function LoginForm({ handleLogin }) {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
+  const [emailError, setEmailError] = React.useState("");
+  const [passwordError, setPasswordError] = React.useState("");
+  const [isAnyFieldNotEmpty, setIsAnyFieldNotEmpty] = React.useState(false);
 
-  function handle() {
-    fetch(`/account/login/${email}/${password}`)
-      .then((response) => response.text())
-      .then((text) => {
-        try {
-          const data = JSON.parse(text);
-          setStatus("");
-          setIsLoggedIn(true);
-          localStorage.setItem("isLoggedIn", "true");
-          localStorage.setItem("email", email); // Store email in local storage
-          console.log("JSON:", data);
-        } catch (err) {
-          setStatus(text);
-          console.log("err:", text);
-        }
-      });
-  }
+  const validateEmail = () => {
+    if (!email) {
+      setEmailError("Email field cannot be empty");
+    } else {
+      setEmailError("");
+    }
+  };
+
+  const validatePassword = () => {
+    if (!password) {
+      setPasswordError("Password field cannot be empty");
+    } else {
+      setPasswordError("");
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    if (name === "email") {
+      setEmail(value);
+    } else if (name === "password") {
+      setPassword(value);
+    }
+    setIsAnyFieldNotEmpty(
+      value.trim() !== "" || (name === "password" && email.trim() !== "")
+    ); // Update isAnyFieldNotEmpty based on whether any field is not empty
+  };
+
+  const handleBlur = (name) => {
+    if (name === "email") {
+      validateEmail();
+    } else if (name === "password") {
+      validatePassword();
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    validateEmail();
+    validatePassword();
+    if (email && password) {
+      handleLogin(email, password);
+    }
+  };
 
   return (
-    <>
-      Email
+    <form onSubmit={handleSubmit}>
+      <div>
+        Email
+        <br />
+        <input
+          type="input"
+          className="form-control"
+          placeholder="Enter email"
+          name="email"
+          value={email}
+          onChange={handleInputChange}
+          onBlur={() => handleBlur("email")}
+        />
+        {emailError && <div style={{ color: "red" }}>{emailError}</div>}
+      </div>
+      <div>
+        Password
+        <br />
+        <input
+          type="password"
+          className="form-control"
+          placeholder="Enter password"
+          name="password"
+          value={password}
+          onChange={handleInputChange}
+          onBlur={() => handleBlur("password")}
+        />
+        {passwordError && <div style={{ color: "red" }}>{passwordError}</div>}
+      </div>
       <br />
-      <input
-        type="input"
-        className="form-control"
-        placeholder="Enter email"
-        value={email}
-        onChange={(e) => setEmail(e.currentTarget.value)}
-      />
-      <br />
-      Password
-      <br />
-      <input
-        type="password"
-        className="form-control"
-        placeholder="Enter password"
-        value={password}
-        onChange={(e) => setPassword(e.currentTarget.value)}
-      />
-      <br />
-      <button type="submit" className="btn btn-light" onClick={handle}>
+      <button
+        type="submit"
+        className="btn btn-light"
+        disabled={!isAnyFieldNotEmpty}
+      >
         Login
       </button>
-    </>
+    </form>
   );
 }

@@ -14,7 +14,7 @@ MongoClient.connect(url, { useUnifiedTopology: true }, function (err, client) {
 function create(name, email, password) {
   return new Promise((resolve, reject) => {
     const collection = db.collection("users");
-    const doc = { name, email, password, balance: 0 };
+    const doc = { name, email, password, balance: 0, loggedIn: false }; // Add loggedIn field with default value
     collection.insertOne(doc, { w: 1 }, function (err, result) {
       err ? reject(err) : resolve(doc);
     });
@@ -147,6 +147,28 @@ function logoff(email) {
   });
 }
 
+// check logged-in status of user
+function checkLoggedInStatus(email) {
+  return new Promise((resolve, reject) => {
+    const collection = db.collection("users");
+    collection.findOne(
+      { email: email },
+      { projection: { loggedIn: 1 } },
+      function (err, result) {
+        if (err) {
+          reject(err);
+        } else {
+          if (result) {
+            resolve(result.loggedIn || false);
+          } else {
+            resolve(false);
+          }
+        }
+      }
+    );
+  });
+}
+
 module.exports = {
   create,
   find,
@@ -157,4 +179,5 @@ module.exports = {
   setLoggedIn,
   setLoggedOff,
   logoff,
+  checkLoggedInStatus,
 };

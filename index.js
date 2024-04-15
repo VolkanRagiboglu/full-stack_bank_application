@@ -33,25 +33,44 @@ app.post("/account/create/:name/:email/:password", function (req, res) {
 
 // login user
 app.get("/account/login/:email/:password", function (req, res) {
-  dal.find(req.params.email).then((user) => {
-    if (user.length > 0) {
-      if (user[0].password === req.params.password) {
-        dal
-          .setLoggedIn(user[0].email, true)
-          .then(() => {
-            res.send(user[0]);
-          })
-          .catch((error) => {
-            console.error("Error setting loggedIn flag:", error);
-            res.status(500).send("Internal Server Error");
+  const email = req.params.email;
+  const password = req.params.password;
+
+  dal
+    .find(email)
+    .then((user) => {
+      if (user.length > 0) {
+        if (user[0].password === password) {
+          dal
+            .setLoggedIn(email, true) // Update loggedIn to true for the logged-in user
+            .then(() => {
+              res.send({
+                success: true,
+                message: "Login successful",
+                user: user[0],
+              });
+            })
+            .catch((error) => {
+              console.error("Error setting loggedIn flag:", error);
+              res.status(500).send("Internal Server Error");
+            });
+        } else {
+          res.send({
+            success: false,
+            message: "Login failed: wrong password",
           });
+        }
       } else {
-        res.send("Login failed: wrong password");
+        res.send({
+          success: false,
+          message: "Login failed: user not found",
+        });
       }
-    } else {
-      res.send("Login failed: user not found");
-    }
-  });
+    })
+    .catch((error) => {
+      console.error("Error finding user:", error);
+      res.status(500).send("Internal Server Error");
+    });
 });
 
 // log off user
@@ -70,10 +89,21 @@ app.get("/account/logoff/:email", function (req, res) {
 
 // find user account
 app.get("/account/find/:email", function (req, res) {
-  dal.find(req.params.email).then((user) => {
-    console.log(user);
-    res.send(user);
-  });
+  const email = req.params.email;
+  dal
+    .find(email)
+    .then((user) => {
+      if (user.length > 0) {
+        console.log(user);
+        res.json(user);
+      } else {
+        res.status(404).send("User not found");
+      }
+    })
+    .catch((error) => {
+      console.error("Error fetching user information:", error);
+      res.status(500).send("Internal Server Error");
+    });
 });
 
 // deposit amount to user account

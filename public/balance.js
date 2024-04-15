@@ -2,27 +2,46 @@ function Balance() {
   const [isLoggedIn, setIsLoggedIn] = React.useState(false);
   const [userEmail, setUserEmail] = React.useState("");
   const [userName, setUserName] = React.useState("");
+  const [loading, setLoading] = React.useState(true);
 
-  // Check if user is already logged in
+  // Fetch logged-in status and user details when the component mounts
   React.useEffect(() => {
-    const loggedIn = localStorage.getItem("isLoggedIn");
-    if (loggedIn === "true") {
-      setIsLoggedIn(true);
-      const email = localStorage.getItem("email");
-      setUserEmail(email);
-      fetch(`/account/find/${email}`)
+    fetchLoggedInStatus();
+  }, []);
+
+  // Function to fetch logged-in status and user details from backend
+  const fetchLoggedInStatus = () => {
+    const loggedInEmail = localStorage.getItem("email");
+    if (loggedInEmail) {
+      fetch(`/account/find/${loggedInEmail}`)
         .then((response) => response.json())
         .then((data) => {
-          const user = data[0];
-          if (user) {
-            setUserName(user.name);
+          if (data.length > 0 && data[0].loggedIn) {
+            setIsLoggedIn(true);
+            setUserEmail(loggedInEmail);
+            setUserName(data[0].name);
+          } else {
+            setIsLoggedIn(false);
+            setUserEmail("");
+            setUserName("");
           }
+          setLoading(false);
         })
         .catch((error) => {
-          console.error("Error fetching user information:", error);
+          console.error("Error fetching logged-in status:", error);
+          setLoading(false);
         });
+    } else {
+      setLoading(false);
     }
-  }, []);
+  };
+
+  // Log the current state of isLoggedIn
+  console.log("isLoggedIn:", isLoggedIn);
+
+  if (loading) {
+    return <p>Loading...</p>;
+  }
 
   return (
     <>
@@ -56,51 +75,34 @@ function Balance() {
 }
 
 function BalanceForm({ userEmail }) {
-  const [userDetails, setUserDetails] = React.useState(null);
   const [balance, setBalance] = React.useState(null);
   const [status, setStatus] = React.useState("");
   const [isBalanceChecked, setIsBalanceChecked] = React.useState(false);
 
-  // Fetch user information when the component mounts
-  React.useEffect(() => {
-    fetch(`/account/find/${userEmail}`)
-      .then((response) => response.json())
-      .then((data) => {
-        const user = data[0]; // Assuming the response is an array with a single user object
-        if (user) {
-          setUserDetails(user);
-        }
-      })
-      .catch((error) => {
-        console.error("Error fetching user details:", error);
-      });
-  }, [userEmail]);
-
-  // Function to handle checking balance
+  // Function to handle checking the balance
   const handleCheckBalance = () => {
-    // Fetch user balance using the email stored in local storage
+    // Fetch user information
     fetch(`/account/find/${userEmail}`)
       .then((response) => response.json())
       .then((data) => {
         const user = data[0]; // Assuming the response is an array with a single user object
         if (user) {
           setBalance(user.balance);
-          setStatus("Balance checked successfully");
           setIsBalanceChecked(true);
+          setStatus("");
         } else {
           setStatus("User not found");
         }
       })
       .catch((error) => {
-        console.error("Error fetching user balance:", error);
-        setStatus("Error fetching balance");
+        console.error("Error fetching user details:", error);
+        setStatus("Error fetching user details");
       });
   };
 
   // Render the component
   return (
     <>
-      {/* {userDetails && <p>Logged in user: {userDetails.name}</p>} */}
       <button
         type="button"
         className="btn btn-light"

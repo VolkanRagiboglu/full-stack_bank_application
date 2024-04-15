@@ -2,27 +2,43 @@ function Withdraw() {
   const [isLoggedIn, setIsLoggedIn] = React.useState(false);
   const [userEmail, setUserEmail] = React.useState("");
   const [userName, setUserName] = React.useState("");
+  const [loading, setLoading] = React.useState(true);
 
-  // Check if user is already logged in
+  // Fetch logged-in status and user details when the component mounts
   React.useEffect(() => {
-    const loggedIn = localStorage.getItem("isLoggedIn");
-    const email = localStorage.getItem("email");
-    if (loggedIn === "true" && email) {
-      setIsLoggedIn(true);
-      setUserEmail(email);
-      // Fetch user details to get the user's name
-      fetch(`/account/find/${email}`)
+    fetchLoggedInStatus();
+  }, []);
+
+  // Function to fetch logged-in status and user details from backend
+  const fetchLoggedInStatus = () => {
+    const loggedInEmail = localStorage.getItem("email");
+    if (loggedInEmail) {
+      fetch(`/account/find/${loggedInEmail}`)
         .then((response) => response.json())
         .then((data) => {
-          if (data.length > 0) {
+          if (data.length > 0 && data[0].loggedIn) {
+            setIsLoggedIn(true);
+            setUserEmail(loggedInEmail);
             setUserName(data[0].name);
+          } else {
+            setIsLoggedIn(false);
+            setUserEmail("");
+            setUserName("");
           }
+          setLoading(false);
         })
         .catch((error) => {
-          console.error("Error fetching user details:", error);
+          console.error("Error fetching logged-in status:", error);
+          setLoading(false);
         });
+    } else {
+      setLoading(false);
     }
-  }, []);
+  };
+
+  if (loading) {
+    return <p>Loading...</p>;
+  }
 
   return (
     <>
@@ -57,7 +73,7 @@ function Withdraw() {
 
 function WithdrawForm({ userEmail }) {
   const [userDetails, setUserDetails] = React.useState(null);
-  const [amount, setAmount] = React.useState(null);
+  const [amount, setAmount] = React.useState("");
   const [status, setStatus] = React.useState("");
 
   // Fetch user information when the component mounts
@@ -73,7 +89,7 @@ function WithdrawForm({ userEmail }) {
       });
   }, [userEmail]);
 
-  function handleWithdraw() {
+  const handleWithdraw = () => {
     // Check if userDetails is available
     if (!userDetails) {
       console.error("User details not available");
@@ -93,7 +109,15 @@ function WithdrawForm({ userEmail }) {
         console.error("Error withdrawing:", error);
         setStatus("Error withdrawing");
       });
-  }
+  };
+
+  const handleAmountChange = (e) => {
+    const value = e.currentTarget.value;
+    if (/^\d*\.?\d*$/.test(value)) {
+      // Only set the amount if it's a valid numeric value
+      setAmount(value);
+    }
+  };
 
   return (
     <>
@@ -103,17 +127,11 @@ function WithdrawForm({ userEmail }) {
           <label htmlFor="amount">Amount:</label>
           <input
             id="amount"
-            type="number"
+            type="text" // Change type to text
             className="form-control"
             placeholder="Enter amount"
-            value={amount !== null ? amount : ""}
-            onChange={(e) =>
-              setAmount(
-                e.currentTarget.value === ""
-                  ? null
-                  : Number(e.currentTarget.value)
-              )
-            }
+            value={amount}
+            onChange={handleAmountChange}
           />
           <br />
           <button

@@ -2,33 +2,46 @@ function Deposit() {
   const [isLoggedIn, setIsLoggedIn] = React.useState(false);
   const [userEmail, setUserEmail] = React.useState("");
   const [userName, setUserName] = React.useState("");
+  const [loading, setLoading] = React.useState(true);
 
-  // Check if user is already logged in
+  // Fetch logged-in status when the component mounts
   React.useEffect(() => {
-    const loggedIn = localStorage.getItem("isLoggedIn");
-    if (loggedIn === "true") {
-      setIsLoggedIn(true);
-      const email = localStorage.getItem("email");
-      setUserEmail(email);
-      fetch(`/account/find/${email}`)
+    fetchLoggedInStatus();
+  }, []);
+
+  // Function to fetch user's logged-in status from backend
+  const fetchLoggedInStatus = () => {
+    const loggedInEmail = localStorage.getItem("email");
+    if (loggedInEmail) {
+      fetch(`/account/find/${loggedInEmail}`)
         .then((response) => response.json())
         .then((data) => {
-          const user = data[0];
-          if (user) {
-            setUserName(user.name);
+          if (data.length > 0 && data[0].loggedIn) {
+            setIsLoggedIn(true);
+            setUserEmail(loggedInEmail);
+            setUserName(data[0].name);
           }
         })
         .catch((error) => {
-          console.error("Error fetching user information:", error);
+          console.error("Error fetching logged-in status:", error);
+        })
+        .finally(() => {
+          setLoading(false);
         });
+    } else {
+      setLoading(false);
     }
-  }, []);
+  };
+
+  if (loading) {
+    return <p>Loading...</p>;
+  }
 
   return (
     <>
       {/* Logged-in user card */}
-      {isLoggedIn && (
-        <div style={{ position: "absolute", top: "75px", right: "10px" }}>
+      <div style={{ position: "absolute", top: "75px", right: "10px" }}>
+        {isLoggedIn && (
           <Card
             bgcolor="info"
             header="Logged In User"
@@ -38,8 +51,8 @@ function Deposit() {
               margin: "10px", // Adjust margin as needed
             }}
           />
-        </div>
-      )}
+        )}
+      </div>
       <Card
         bgcolor="success"
         header="Deposit"
@@ -56,22 +69,8 @@ function Deposit() {
 }
 
 function DepositForm({ userEmail }) {
-  const [userDetails, setUserDetails] = React.useState(null);
-  const [amount, setAmount] = React.useState(null);
+  const [amount, setAmount] = React.useState("");
   const [status, setStatus] = React.useState("");
-
-  // Fetch user information when the component mounts
-  React.useEffect(() => {
-    // Fetch user details
-    fetch(`/account/find/${userEmail}`)
-      .then((response) => response.json())
-      .then((data) => {
-        setUserDetails(data[0]); // Assuming the response is an array with a single user object
-      })
-      .catch((error) => {
-        console.error("Error fetching user details:", error);
-      });
-  }, [userEmail]); // Trigger effect when userEmail changes
 
   const handleDeposit = () => {
     // Send a POST request to the deposit endpoint
@@ -89,21 +88,24 @@ function DepositForm({ userEmail }) {
       });
   };
 
+  const handleAmountChange = (e) => {
+    const value = e.currentTarget.value;
+    if (/^\d*\.?\d*$/.test(value)) {
+      // Only set the amount if it's a valid numeric value
+      setAmount(value);
+    }
+  };
+
   return (
     <div>
-      {/* {userDetails && <p>Logged in user: {userDetails.name}</p>} */}
       <label htmlFor="amount">Amount:</label>
       <input
         id="amount"
-        type="number"
+        type="text" // Change type to text
         className="form-control"
         placeholder="Enter amount"
-        value={amount !== null ? amount : ""}
-        onChange={(e) =>
-          setAmount(
-            e.currentTarget.value === "" ? null : Number(e.currentTarget.value)
-          )
-        }
+        value={amount}
+        onChange={handleAmountChange}
       />
       <br />
       <button type="submit" className="btn btn-light" onClick={handleDeposit}>

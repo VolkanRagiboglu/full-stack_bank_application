@@ -39,3 +39,7 @@
 .CardBody {
   padding: 1rem;
 }
+
+.navbar-nav li.nav-item a.nav-link.active {
+  font-weight: bold;
+}
